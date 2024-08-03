@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+* {
+    font-family: 'Roboto', sans-serif;
+}
+
+/* SVG and div styling */
+#content {
+    margin: auto;
+    width: 1550px;
+}
+
+#map {
+    width: 800px;
+    height: 500px;
+}
+
+#line-chart {
+    width: 700px;
+    height: 500px;
+}
+
+#info-box {
+    margin: auto;
+    width: 400px;
+}
+
+.header {
+    width: 600px;
+    margin: auto;
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+/* Vis specific classes */
+#countries > .country.selected {
+    stroke-width: 2px;
+    stroke: black;
+    stroke-opacity: 1;
+}
+
+#countries > .country {
+    stroke-width: 1px;
+    stroke: black;
+    stroke-opacity: 0.1;
+}
+
+.graticule {
+    fill: none;
+    stroke: red;
+    stroke-width: .5px;
+    stroke-opacity: .2;
+    pointer-events: none;
+}
+
+.strokeGraticule {
+    fill: none;
+    stroke: green;
+    stroke-width: 1px;
+}
+
+.selected {
+    stroke: black; 
+    stroke-width: 1;  /* Increase the border width */
+}
+
+text {
+    fill: black;
+    font-size: 10px;
+}
+
+.TitleText {
+    fill: black;
+    font-size: 15px;
+}
+
+    /* style of line charts */
+.line-chart-setting {
+    stroke-width: 2;
+    fill: none;
+}
+
+.vertical-line {
+    stroke-width: 1;
+    fill: none;
+}
+
+.vertical-line-text {
+    fill: black;
+    font-size: 12px;
+}
