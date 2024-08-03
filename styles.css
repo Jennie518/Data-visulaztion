@@ -7,17 +7,24 @@
 /* SVG and div styling */
 #content {
     margin: auto;
-    width: 1550px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    text-align: center;
 }
 
 #map {
     width: 800px;
     height: 500px;
+    margin: auto;
 }
 
 #line-chart {
     width: 700px;
     height: 500px;
+    margin: auto;
 }
 
 #info-box {
@@ -26,8 +33,7 @@
 }
 
 .header {
-    width: 600px;
-    margin: auto;
+    width: 100%;
     text-align: center;
     margin-bottom: 50px;
 }
@@ -60,8 +66,8 @@
 }
 
 .selected {
-    stroke: black; 
-    stroke-width: 1;  /* Increase the border width */
+    stroke: black;
+    stroke-width: 1;
 }
 
 text {
@@ -74,7 +80,7 @@ text {
     font-size: 15px;
 }
 
-    /* style of line charts */
+/* style of line charts */
 .line-chart-setting {
     stroke-width: 2;
     fill: none;
