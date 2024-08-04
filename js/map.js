@@ -1,104 +1,76 @@
-
 class CountryData {
-  /**
-   *
-   * @param type refers to the geoJSON type- countries are considered features
+  /***
+   * @param type geoJSON type- countries are features
    * @param properties contains the value mappings for the data
-   * @param geometry contains array of coordinates to draw the country paths
-   * @param region the country region
+  * @param geometry contains array of coordinates to draw the country paths
+  * @param region the country region
+   * @param name the country name for tooltip
    */
-  constructor(type, id, properties, geometry, total_cases_per_million) {
-      this.type = type;
-      this.id = id;
-      this.properties = properties;
-      this.geometry = geometry;
-      this.total_cases_per_million = total_cases_per_million;
+  constructor(type, id, properties, geometry, total_cases_per_million, name) {
+    this.type = type;
+    this.id = id;
+    this.properties = properties;
+    this.geometry = geometry;
+    this.total_cases_per_million = total_cases_per_million;
+    this.name = name;
   }
 }
 
-/** Class representing the map view. */
+
+// map view
 class MapVis {
-  /**
-   * Creates a Map Visuzation
-   * @param globalApplicationState The shared global application state (has the data and the line chart instance in it)
-   */
   constructor(globalApplicationState) {
     this.globalApplicationState = globalApplicationState;
 
-    console.log("in construct", globalApplicationState.mapData);
-    
+    console.log("Constructing...", globalApplicationState.mapData);
+
     // Set up the map projection
     const projection = d3.geoWinkel3()
-      .scale(150) // This set the size of the map
-      .translate([400, 250]); // This moves the map to the center of the SVG
+      .scale(150)
+      .translate([400, 250]);
 
     let svg = d3.select("#map");
-    // This converts the projected lat/lon coordinates into an SVG path string
+    const tooltip = d3.select("#tooltip");
     let pathGeojson = d3.geoPath().projection(projection);
 
-    let geojson = topojson.feature(globalApplicationState.mapData, 
-        globalApplicationState.mapData.objects.countries);
+    let geojson = topojson.feature(globalApplicationState.mapData, globalApplicationState.mapData.objects.countries);
 
     let covidDataArray = globalApplicationState.covidData;
 
     let covidDataMap = new Map();
-    let idx = 0;
-    while (idx < covidDataArray.length) {
-      let tcpm = parseFloat(covidDataArray[idx].total_cases_per_million);
-      let id = covidDataArray[idx].iso_code;
-      if (covidDataMap.has(id)) {
-        let prev = covidDataMap.get(id);
-        if (tcpm > prev || isNaN(prev)) {
-          covidDataMap.set(id, tcpm);
-        }
-      } else {
-        covidDataMap.set(id, tcpm);
-      }
-      idx += 1;
-    }
-
-    let max_total_cases_per_million = 0;
-    let min_total_cases_per_million = 0;
-    for (const [key, value] of covidDataMap) {
-      if (value > max_total_cases_per_million) {
-        max_total_cases_per_million = value;
-      }
-      if (value < min_total_cases_per_million) {
-        min_total_cases_per_million = value;
-      }
-    }
-
-    console.log("covidDataArray size:", covidDataMap.size);
-    let cnt = 0;
-
-    let countryData = geojson.features.map(country => {
-      let total_cases_per_million = 0.0;
-      if (country.id == "LBY") {
-        console.log("lby", country);
-      }
-      if (covidDataMap.has(country.id)) {
-          total_cases_per_million = covidDataMap.get(country.id);
-          if (isNaN(total_cases_per_million)) {
-            total_cases_per_million = 0.0;
-          }
-          //console.log('found total_cases_per_million:', total_cases_per_million);
-          return new CountryData(country.type, country.id, country.properties, 
-                country.geometry, total_cases_per_million);
-      } else {
-          //console.log('not found country:', country);
-          return new CountryData(country.type, country.id, country.properties,
-                country.geometry, total_cases_per_million);
+    covidDataArray.forEach(item => {
+      let tcpm = parseFloat(item.total_cases_per_million);
+      if (!isNaN(tcpm)) {
+        covidDataMap.set(item.iso_code, Math.max(tcpm, covidDataMap.get(item.iso_code) || 0));
       }
     });
 
-   // console.log("countryData len:", CountryData.length, "cnt:", cnt);
+    let max_total_cases_per_million = d3.max([...covidDataMap.values()]);
 
-    console.log(`max_total_cases_per_million ${max_total_cases_per_million}:`);
-    console.log(`min_total_cases_per_million ${min_total_cases_per_million}:`);
-    // Define a color scale, for example using d3.scaleQuantize
+    let countryData = geojson.features.map(country => {
+      let total_cases_per_million = covidDataMap.get(country.id) || 0.0;
+      let countryName = covidDataArray.find(item => item.iso_code === country.id)?.location || "Unknown";
+      return new CountryData(country.type, country.id, country.properties, country.geometry, total_cases_per_million, countryName);
+    });
+
     let colorScale = d3.scaleLinear()
       .domain([0, max_total_cases_per_million])
-      .range(['#E0F7E0', '#006400']); // Adjust the color range as needed
+      .range(['#E0F7E0', '#006400']);
+
+      // Display the country name when mouse hovers over
+    function mouseover(event, d) {
+      tooltip.style("visibility", "visible")
+        .text(d.name); 
+    }
+
+    function mousemove(event) {
+      tooltip.style("top", (event.pageY - 10) + "px")
+        .style("left", (event.pageX + 10) + "px");
+    }
+
+    function mouseout() {
+      tooltip.style("visibility", "hidden");
+    }
 
     svg.selectAll("path")
       .data(countryData)
@@ -108,72 +80,71 @@ class MapVis {
       .classed("countries", true)
       .classed("boundary", true)
       .attr("id", d => d.id)
-      .attr("fill", d => {
-        const cases = d.total_cases_per_million;
-        //console.log("case:", d.total_cases_per_million);
-        return colorScale(cases);
-      })
-      .attr("stroke", "black") // Add a black stroke
-      .attr("stroke-width", 0.1); // You can adjust the stroke width as needed
+      .attr("fill", d => colorScale(d.total_cases_per_million))
+      .attr("stroke", "black")
+      .attr("stroke-width", 0.1)
+      .on("mouseover", mouseover)
+      .on("mousemove", mousemove)
+      .on("mouseout", mouseout);
 
     //formation of outlines and boundaries using outline
     let mapGraticule = d3.geoGraticule();
 
     svg.append("path")
-        .datum(mapGraticule)
-        .attr("class", "graticule")
-        .attr("d", pathGeojson);
+      .datum(mapGraticule)
+      .attr("class", "graticule")
+      .attr("d", pathGeojson);
 
     svg.append("path")
-        .datum(mapGraticule.outline)
-        .classed("strokeGraticule", true)
-        .attr("d", pathGeojson);
-    
+      .datum(mapGraticule.outline)
+      .classed("strokeGraticule", true)
+      .attr("d", pathGeojson);
+
     // legend
     // Define linear gradient with color stops based on the color scale
     const legendGradient = svg.append("defs")
-        .append("linearGradient")
-        .attr("id", "legend-gradient")
-        .attr("x1", "0%")
-        .attr("y1", "0%")
-        .attr("x2", "100%")
-        .attr("y2", "0%");
+      .append("linearGradient")
+      .attr("id", "legend-gradient")
+      .attr("x1", "0%")
+      .attr("y1", "0%")
+      .attr("x2", "100%")
+      .attr("y2", "0%");
 
     // Define color stops for the gradient based on the color scale
     legendGradient.append("stop")
-        .attr("offset", "0%")
-        .style("stop-color", colorScale(0))
-        .style("stop-opacity", 1);
+      .attr("offset", "0%")
+      .style("stop-color", colorScale(0))
+      .style("stop-opacity", 1);
 
     legendGradient.append("stop")
-        .attr("offset", "100%")
-        .style("stop-color", colorScale(max_total_cases_per_million))
-        .style("stop-opacity", 1);
+      .attr("offset", "100%")
+      .style("stop-color", colorScale(max_total_cases_per_million))
+      .style("stop-opacity", 1);
 
     let height = 550;
-    // Create the legend rect with the linear gradient
+    // legend rect with the linear gradient
     svg.append("rect")
-        .attr("x", 10)
-        .attr("y", height - 70)
-        .attr("width", 150)
-        .attr("height", 20)
-        .style("fill", "url(#legend-gradient)");
+      .attr("x", 10)
+      .attr("y", height - 70)
+      .attr("width", 150)
+      .attr("height", 20)
+      .style("fill", "url(#legend-gradient)");
 
-    // Create text elements for legend labels
+    // text elements for legend labels
     svg.append("text")
-        .attr("x", 10)
-        .attr("y", height - 75)
-        .text("0")
+      .attr("x", 10)
+      .attr("y", height - 75)
+      .text("0")
 
     svg.append("text")
-        .attr("x", 100)
-        .attr("y", height - 75)
-        .text(`${Math.ceil(max_total_cases_per_million)}`);
+      .attr("x", 100)
+      .attr("y", height - 75)
+      .text(`${Math.ceil(max_total_cases_per_million)}`);
   }
 
   updateSelectedCountries(country) {
     if (country == '') {
-        return;
+      return;
     }
 
     // Clear previous selections
@@ -183,9 +154,8 @@ class MapVis {
     this.globalApplicationState.selectedLocations.push(country);
     console.log("select:", country);
     d3.select("#" + country)
-        .classed("selected", true);
-}
-
+      .classed("selected", true);
+  }
 
   clearSelectedCountries() {
     for (let i = 0; i < this.globalApplicationState.selectedLocations.length; i += 1) {

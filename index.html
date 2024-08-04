@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Visualization</title>
@@ -38,6 +39,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>Global Epidemic Case Track</h1>
@@ -55,9 +57,16 @@
                 <g id="x-axis"></g>
                 <g id="y-axis"></g>
                 <g id="lines"></g>
-                <g id="overlay"><line></line></g>
+                <g id="overlay">
+                    <line></line>
+                </g>
             </svg>
         </div>
     </div>
+    <div id="tooltip"
+        style="position: absolute; visibility: hidden; background-color: white; padding: 5px;">
+    </div>
+
 </body>
+
 </html>
